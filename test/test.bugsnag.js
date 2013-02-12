@@ -176,36 +176,51 @@ describe("window", function () {
   });
 });
 
-function buildUp(cb) {
+describe("jQuery", function () {
+  beforeEach(function(done) {
+    loadScript("http://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js", "jquery", function () {
+      done();
+    });
+  });
+  beforeEach(buildUp);
+
+  afterEach(function () {
+    removeElement("jquery")
+    window.$ = null;
+    window.jQuery = null;
+  });
+  afterEach(tearDown);
+
+  // TODO: IE doesn't seem to work
+  it("should notify bugsnag of exceptions in $(document).ready", function (done) {
+    try {
+      $(function () {
+        throw new Error("Something broke");
+      });
+    } catch (e) {
+      assert(Bugsnag.testRequest.calledOnce, "Bugsnag.testRequest should have been called once");
+      done();
+    }
+  });
+});
+
+function buildUp(done) {
   // Keep track of mocha's window.onerror
   window._onerror = window.onerror;
 
   // Create bugsnag.js script tag
-  var bugsnag = document.createElement("script");
-  bugsnag.id = "bugsnag";
-  bugsnag.type = "text/javascript";
-  bugsnag.src = "../dist/bugsnag.js";
-  bugsnag.onload = bugsnag.onreadystatechange = function () {
-    if(!this.readyState || this.readyState === "loaded" || this.readyState === "complete") {
-      // Set api key to use when testing
-      Bugsnag.apiKey = "9e68f5104323042c09d8809674e8d05c";
+  loadScript("../dist/bugsnag.js", "bugsnag", function () {
+    // Set api key to use when testing and stub out requests
+    Bugsnag.apiKey = "9e68f5104323042c09d8809674e8d05c";
+    stub(Bugsnag, "testRequest");
 
-      // Stub out requests
-      stub(Bugsnag, "testRequest");
-
-      // Setup is done
-      cb();
-    }
-  };
-
-  // Add bugsnag.js script tag to dom
-  document.getElementsByTagName("body")[0].appendChild(bugsnag);
+    done();
+  });
 }
 
 function tearDown() {
   // Remove the bugsnag.js script tag
-  var bugsnag = document.getElementById("bugsnag");
-  bugsnag.parentNode.removeChild(bugsnag);
+  removeElement("bugsnag");
 
   // Remove the Bugsnag object
   window.Bugsnag = null;
@@ -225,7 +240,7 @@ function requestData() {
 
 // Micro assertion library (works in old IE)
 function assert(statement, message) {
-  if(statement == false) {
+  if(statement == null || statement == false) {
     throw new Error(message);
   }
 }
@@ -253,4 +268,23 @@ function stub(obj, fname) {
   };
 
   obj[fname].origFunction = origFunction;
+}
+
+function loadScript(url, id, done) {
+  var script = document.createElement("script");
+  script.id = id;
+  script.type = "text/javascript";
+  script.src = url;
+  script.onload = script.onreadystatechange = function () {
+    if(!this.readyState || this.readyState === "loaded" || this.readyState === "complete") {
+      done();
+    }
+  };
+
+  document.getElementsByTagName("body")[0].appendChild(script);
+}
+
+function removeElement(id) {
+  var el = document.getElementById(id);
+  el.parentNode.removeChild(el);
 }

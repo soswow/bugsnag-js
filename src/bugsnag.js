@@ -75,6 +75,25 @@ window.Bugsnag = (function (window, document, navigator) {
     }
   };
 
+  // Wrap a function in a `try/catch` block and call `Bugsnag.notifyException`
+  // when exceptions are caught. The original exception is re-thrown.
+  function wrapFunction(context, fn) {
+    var orig = context[fn];
+    context[fn] = function () {
+      try {
+        return orig.apply(context, arguments);
+      } catch (e) {
+        self.notifyException(e);
+        throw e;
+      }
+    };
+  }
+
+  // Wrap any code in `$(document).ready` function in a `try/catch` block
+  var jQuery = window.jQuery;
+  if (jQuery) {
+    wrapFunction(jQuery.fn, "ready");
+  }
 
   //
   // ### Helpers & Setup
