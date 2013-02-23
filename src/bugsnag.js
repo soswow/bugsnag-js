@@ -89,6 +89,18 @@ window.Bugsnag = (function (window, document, navigator) {
     };
   }
 
+  function wrapCallbackFunctions() {
+    // Use on setTimeout, setInterval, window.addEventListener, document.addEventListener
+
+    // TODO:
+    //  Loop through arguments
+    //  Look for function arguments
+    //  Unless function has already been wrapped
+    //    Wrap the function arguments in try/catch
+    //    Unless the exception has already been notified of
+    //      Notify bugsnag
+  }
+
   // Wrap any code in `$(document).ready` function in a `try/catch` block
   var jQuery = window.jQuery;
   if (jQuery) {
